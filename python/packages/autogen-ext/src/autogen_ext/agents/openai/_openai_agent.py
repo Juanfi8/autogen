@@ -514,6 +514,7 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
         api_params["truncation"] = self._truncation
         if self._last_response_id:
             api_params["previous_response_id"] = self._last_response_id
+        api_params["reasoning"] = {"effort": "medium", "summary": "detailed"}
         return api_params
 
     async def on_messages(
@@ -579,6 +580,19 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
             response_obj = await cancellation_token.link_future(
                 asyncio.ensure_future(client.responses.create(**api_params))
             )
+            #TODO
+            final_output = "<thinking>\n"
+            reasoning = getattr(response_obj, "output", None)
+            # print(reasoning)
+            for r in reasoning[:-1]:
+                test = getattr(r, "summary")
+            for t in test:
+                final_output += t.text
+            final_output += "\n</thinking>"
+            print(final_output)
+
+            inner_messages.append(TextMessage(source=self.name, content=str(final_output)))
+
             content = getattr(response_obj, "output_text", None)
             response_id = getattr(response_obj, "id", None)
             self._last_response_id = response_id
