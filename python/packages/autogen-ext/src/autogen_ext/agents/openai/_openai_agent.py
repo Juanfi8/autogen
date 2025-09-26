@@ -581,23 +581,22 @@ class OpenAIAgent(BaseChatAgent, Component[OpenAIAgentConfig]):
                 asyncio.ensure_future(client.responses.create(**api_params))
             )
             #TODO
-            final_output = "<thinking>\n"
+            reasoning_output = "<thinking>\n"
             reasoning = getattr(response_obj, "output", None)
             # print(reasoning)
             for r in reasoning[:-1]:
                 test = getattr(r, "summary")
             for t in test:
-                final_output += t.text
-            final_output += "\n</thinking>"
-            print(final_output)
-
-            inner_messages.append(TextMessage(source=self.name, content=str(final_output)))
+                reasoning_output += t.text
+            reasoning_output += "\n</thinking>"
 
             content = getattr(response_obj, "output_text", None)
             response_id = getattr(response_obj, "id", None)
             self._last_response_id = response_id
             # Use a readable placeholder when the API returns no content to aid debugging
             content_str: str = str(content) if content is not None else "[no content returned]"
+            if reasoning_output:
+                content_str = reasoning_output + "\n" + content_str
             self._message_history.append({"role": "assistant", "content": content_str})
             final_message = TextMessage(source=self.name, content=content_str)
             response = Response(chat_message=final_message, inner_messages=inner_messages)
